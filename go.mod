@@ -1,3 +1,3 @@
-module github.com/deepakdeore2004/iclm
+module deepakdeore2004/iclm
 
 go 1.16
