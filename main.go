@@ -2,10 +2,13 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 func main() {
@@ -13,42 +16,43 @@ func main() {
 	version := flag.String("version", "1.14.1", "istio version to install")
 	flag.Parse()
 
-	// ensure cacheDir
-	if _, err := os.Stat(*cachDir); os.IsNotExist(err) {
-		err := os.Mkdir(*cachDir, 0755)
-		if err != nil {
-			log.Fatal(err)
+	// Download istio if not downloaded already
+	istioCtl := filepath.Join(*cachDir, "istio-"+*version, "bin", "istioctl")
+	//fmt.Println(istioCtl)
+	cmd := exec.Command(istioCtl, "version", "--remote=false")
+	stdout, _ := cmd.Output()
+	//fmt.Println(string(stdout), *version)
+
+	if strings.TrimSuffix(string(stdout), "\n") == *version {
+		log.Printf("%v is present, skipping download\n", istioCtl)
+	} else {
+		fmt.Printf("%v isnt present, downloading\n", istioCtl)
+		// set OS
+		var localOS string
+		if runtime.GOOS == "darwin" {
+			localOS = "osx"
+		} else {
+			localOS = runtime.GOOS
+		}
+
+		// file := "istioctl-" + *version + "-" + localOS + ".tar.gz.sha256"
+		file := "istio-" + *version + "-" + localOS + ".tar.gz"
+
+		link := "https://github.com/istio/istio/releases/download/" + *version + "/" + file
+		localFile := filepath.Join(*cachDir, file)
+
+		if _, err := os.Stat(localFile); err == nil {
+			log.Printf("%v already exists, skipping download\n", file)
+		} else {
+			download(link, localFile)
+			// unzip file
+			log.Printf("Extracting %v\n", localFile)
+			r, err := os.Open(localFile)
+			if err != nil {
+				log.Fatal(err.Error())
+			} else {
+				ExtractTarGz(r, *cachDir)
+			}
 		}
 	}
-
-	// set OS
-	var localOS string
-	if runtime.GOOS == "darwin" {
-		localOS = "osx"
-	} else {
-		localOS = runtime.GOOS
-	}
-
-	// file := "istioctl-" + *version + "-" + localOS + ".tar.gz.sha256"
-	file := "istioctl-" + *version + "-" + localOS + ".tar.gz"
-	link := "https://github.com/istio/istio/releases/download/" + *version + "/" + file
-	localFile := filepath.Join(*cachDir, file)
-
-	if _, err := os.Stat(localFile); err == nil {
-		log.Printf("%v already exists, skipping download\n", file)
-	} else {
-		download(link, localFile)
-	}
-
-	// unzip file
-	log.Printf("Extracting %v\n", file)
-	r, err := os.Open(localFile)
-	if err != nil {
-		log.Fatal(err.Error())
-	} else {
-		ExtractTarGz(r, *cachDir)
-	}
 }
-
-//https://github.com/istio/istio/releases/download/1.12.9/istioctl-1.12.9-osx.tar.gz.sha256
-//https://github.com/istio/istio/releases/download/1.12.9/istioctl-1.12.9-osx-arm64.tar.gz.sha256
