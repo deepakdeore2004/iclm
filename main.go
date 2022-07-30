@@ -18,10 +18,8 @@ func main() {
 
 	// Download istio if not downloaded already
 	istioCtl := filepath.Join(*cachDir, "istio-"+*version, "bin", "istioctl")
-	//fmt.Println(istioCtl)
 	cmd := exec.Command(istioCtl, "version", "--remote=false")
 	stdout, _ := cmd.Output()
-	//fmt.Println(string(stdout), *version)
 
 	if strings.TrimSuffix(string(stdout), "\n") == *version {
 		log.Printf("%v is present, skipping download\n", istioCtl)
@@ -35,7 +33,6 @@ func main() {
 			localOS = runtime.GOOS
 		}
 
-		// file := "istioctl-" + *version + "-" + localOS + ".tar.gz.sha256"
 		file := "istio-" + *version + "-" + localOS + ".tar.gz"
 
 		link := "https://github.com/istio/istio/releases/download/" + *version + "/" + file
